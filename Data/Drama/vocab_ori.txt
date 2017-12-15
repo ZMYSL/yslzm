@@ -1,4 +1,3 @@
-A 59
 ACT 20
 AEson 1
 ALL 1
@@ -67,8 +66,7 @@ But 73
 By 21
 Call 1
 Came 1
-Can 3
-Cannot 2
+Can 5
 Carthage 1
 Cato 1
 Certainly 2
@@ -921,10 +919,9 @@ call 12
 called 1
 calls 3
 came 8
-can 25
+can 43
 candle 4
 candles 1
-cannot 18
 canst 3
 capering 1
 carcasses 1
@@ -2289,7 +2286,7 @@ none 12
 nor 22
 northward 1
 nose 2
-not 207
+not 227
 notary 2
 note 4
 notes 1
@@ -3166,7 +3163,7 @@ till 9
 time 22
 times 15
 tis 12
-title 22
+title 2
 to 374
 together 5
 told 12

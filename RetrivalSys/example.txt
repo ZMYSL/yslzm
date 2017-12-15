@@ -1,0 +1,25 @@
+comp(word, code):
+    if word的前缀<code的前缀:
+        return word < code
+        例子：word = Apple , code = Be*lieve5$llario6$lmont5$shrew5
+        找该code左侧的code或者子节点
+    elif word前缀>code的前缀:
+        return word > code
+        找该code右侧的code或者子节点 (后续不再赘述)
+        例子：word = Cat , code = Be*lieve5$llario6$lmont5$shrew5
+    else: 命中该前缀(块内没有前缀则算命中)，则进一步比较
+        进行解码,得到n个单词
+        if 第一个单词大于该word:
+            return word < code
+            例子：word = Bear , code = Be*lieve5$llario6$lmont5$shrew5
+        elif 第n个单词小于该word:
+            return word > code
+            例子：word = Bezzz , code = Be*lieve5$llario6$lmont5$shrew5
+        else:
+            word就在n个单词之中
+            二分查找该单词
+            得到指向该单词倒排索引的指针
+            return 命中
+            例子：word = Belmont , code = Be*lieve5$llario6$lmont5$shrew5
+
+

@@ -44,18 +44,22 @@ def getkeyitem(termdict):
 
 # SPIMI
 # 后期用到bm25,需要保存词的df,文档中的tf
-def SPIMI(data_path, block):
+def SPIMI(args, file_name, block):
     block_size = block
+    dir_path = args.data_pro_dir
+    cpn_path = args.cpn_dir
+    data_path = dir_path + file_name
     data_file = open(data_path, 'r', encoding='utf-8')
     local_index = dict()
     doc_id = 0
     index_sum = 0
     block_id = 1
+
     for line in data_file:
         terms = line.strip('\n').split(' ')
         if index_sum > block_size:
             # 写入文件
-            block_file = open("components/block" + str(block_id), 'w', encoding='utf-8')
+            block_file = open(cpn_path + "block" + str(block_id), 'w', encoding='utf-8')
             sorted_index = sorted(local_index.items(), key=lambda e: e[0])
             for item in sorted_index:
                 key_dict = {item[0]: item[1]}
@@ -92,7 +96,7 @@ def SPIMI(data_path, block):
                 index_sum += 1
     if index_sum > 0:
         # 写入文件
-        block_file = open("components/block" + str(block_id), 'w', encoding='utf-8')
+        block_file = open(cpn_path + "block" + str(block_id), 'w', encoding='utf-8')
         sorted_index = sorted(local_index.items(), key=lambda e: e[0])
         for item in sorted_index:
             key_dict = {item[0]: item[1]}
@@ -101,7 +105,7 @@ def SPIMI(data_path, block):
     data_file.close()
 
     # 合并各个块,使用优先队列进行多路合并
-    path_list = os.listdir("components/")
+    path_list = os.listdir(cpn_path)
     block_lists = []
     for path in path_list:
         if path.startswith('block'):
@@ -113,9 +117,9 @@ def SPIMI(data_path, block):
     merge_N = len(block_lists)
     block_files = list()
     for i in range(merge_N):
-        block_file = open("components/" + block_lists[i], 'r', encoding='utf-8')
+        block_file = open(cpn_path + block_lists[i], 'r', encoding='utf-8')
         block_files.append(block_file)
-    out_file = open("components/Index_SPIMI.txt", 'w', encoding='utf-8')
+    out_file = open(cpn_path + "Index_SPIMI.txt", 'w', encoding='utf-8')
     merged_flag = [False for i in range(merge_N)]
     end_file = 0
     while end_file < merge_N:
@@ -160,7 +164,7 @@ def SPIMI(data_path, block):
             term_dict = {first_term.word: first_term.index_list}
             term_str = json.dumps(term_dict)
             out_file.write(term_str + '\n')
-
+    out_file.close()
 
 
 

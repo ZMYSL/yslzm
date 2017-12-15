@@ -89,5 +89,5 @@ def DictDecompress(compress_file_path, decompress_file_path):
                     else:
                         raise NameError('Post length doesn\'t equal to length!' )
 
-DictCompress(4, './components/CompressedDict.txt')
-DictDecompress('./components/CompressedDict.txt', './components/DecompressedDict.txt')
+# DictCompress(4, './components/CompressedDict.txt')
+# DictDecompress('./components/CompressedDict.txt', './components/DecompressedDict.txt')
