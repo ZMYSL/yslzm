@@ -4,6 +4,12 @@ import os
 import nltk
 from bs4 import BeautifulSoup
 
+
+Porter = nltk.PorterStemmer()
+WNL = nltk.WordNetLemmatizer()
+Stop_Words = nltk.corpus.stopwords.words('english')
+MIN_DOCID = 13900
+
 # 合并剧本
 def merge_data(args, file_name1, file_name2):
     dir_path = args.data_ori_dir
@@ -107,11 +113,12 @@ def statistic_info(args):
     vocab_file.close()
     info_file.close()
 
-# 提取summary域,统计文档数目
-def get_summary(path):
-    out_dir = "../Data/Trec/"
+# 统计Trec数据集文档数目,和docid范围
+def statistic_trec(path):
     dir_list = os.listdir(path)
-    doc_set = set()
+    doc_sum = 0
+    min_id = 900000
+    max_id = -1
     for dir in dir_list:
         d_path = path + '/' + dir
         if os.path.isdir(d_path):
@@ -119,18 +126,15 @@ def get_summary(path):
             for dir1 in dir1_list:
                 file_list = os.listdir(d_path + '/' + dir1)
                 for file in file_list:
-                    doc_set.add(file)
-                    out_file = out_dir + file.split('.')[0]
-                    # with open(file, 'r', encoding='utf-8'):
-                    #     for line in file:
+                    id = int(file.split('.')[0])
+                    doc_sum += 1
+                    max_id = max(max_id, id)
+                    min_id = min(min_id, id)
+    print("Doc Sum: %d" % doc_sum) # 733328
+    print("Min id: %d" % min_id) # 13900
+    print("Max id: %d" % max_id) # 3896981
 
-
-
-    print("Doc Sum: %d" % len(doc_set))
-
-
-
-
+# 统计Trec数据集每个topic反馈馈的文档数目,以及相关的文档数目
 def cal_topk():
     data_file = open("../Data/Trec/qrels-treceval-2014.txt", 'r', encoding='utf-8')
     q_dict = dict()
@@ -148,33 +152,59 @@ def cal_topk():
     for q, t in q_dict.items():
         print("%d : %d" %(q, t))
 
-def filter_trec(op_lower=False, op_root=False, op_stop=False):
+# 过滤Trec数据集
+def filter_trec(xml_path, out_file, op_lower=True, op_root=True, op_stop=True):
     """
-    取出nxml中主title,并且从Conclusion的内容后截断，只保留前部分
+    取出nxml中主title,去除所有标签，去除内容里的url
     并将文本规范化，1.统一小写 2.去停用词 3.词干提取 4.词形归并 5.分词
     """
 
-    file = open("../Data/Trec/3148967.nxml", 'r', encoding='utf-8')
-    out_file = open("../Data/Trec/3148967_res.txt", 'w', encoding='utf-8')
-    # porter = nltk.PorterStemmer()
-    # wnl = nltk.WordNetLemmatizer()
-    # tn = nltk.word_tokenize()
+    file = open(xml_path, 'r', encoding='utf-8')
+    n_line = ''
+    docid = xml_path.split('/')[-1].split('.')[0]
+    docid = int(docid) - MIN_DOCID + 1
     for line in file:
-        # line = re.sub(r'<.+?>', ' ', line)
-        # line = ' '.join(line.split()[12:])
+        # 提取主标题
         title = re.findall(r'<article-title>.+?</article-title>', line)
+        if len(title) > 0:
+            title = re.sub(r'<.+?>', ' ', title[0])
+            title = re.sub(r'\W+', ' ', title)
+            n_line += (title + ' ')
         psg = re.findall(r'<p>.+?</p>', line)
-        psg = re.sub(r'<.+?>', ' ', title[0] + '\n' + '\n'.join(psg))
-        n_line = ' '.join(psg.split())
-        out_file.write(n_line)
+        for p in psg:
+            # 去中括号的reference
+            p = re.sub(r'\[.+?\]', ' ', p)
+            p = re.sub(r'<.+?>', ' ', p)
+            # 去链接、字符
+            p = re.sub(r'[a-zA-z]+://[^\s]*', ' ', p)
+            p = re.sub(r'\W+', ' ', p)
+            n_line += (p + ' ')
+        if op_lower:
+            n_line = n_line.lower()
+        tokens = nltk.word_tokenize(n_line)
+        if op_stop:
+            t = len(tokens) - 1
+            while t >= 0:
+                # 删除停用词和x0开头的字符
+                isx0 = re.fullmatch(r'x0.*', tokens[t])
+                if tokens[t] in Stop_Words or isx0 is not None:
+                    del tokens[t]
+                t -= 1
+        if op_root:
+            # 归并、还原词干
+            for i in range(len(tokens)):
+                tokens[i] = Porter.stem(tokens[i])
+                tokens[i] = WNL.lemmatize(tokens[i])
+        out_file.write(str(docid) + '\t' + ' '.join(tokens) + '\n')
+
     file.close()
-    out_file.close()
+
 # merge_data()
 # del_label("../Data/Drama/shakespeare-merchant")
 # make_vocab("../Data/Drama/shakespeare-merchant_nolabel", "components/vocab_ori.txt")
 # statistic_info()
 
 # dir_path = os.path.expanduser('~') + "/Documents/Data/TrecCDS2014"
-# get_summary(dir_path)
+# statistic_trec(dir_path)
 # cal_topk()
 # filter_trec()
