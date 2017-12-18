@@ -81,6 +81,7 @@ def LineDecompress(line):
             dict.append(front + post)
         else:
             raise NameError('Post length doesn\'t equal to length!')
+    return dict
 
 #解压词典文件
 def DictDecompress(compress_file_path, decompress_file_path):
