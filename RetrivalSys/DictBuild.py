@@ -66,6 +66,23 @@ def DictCompress(size_num, save_file_path):
                         voclist.clear()
                         break
 
+#单行解压词典
+#传入参数为压缩词典字符串
+def LineDecompress(line):
+    dict = []
+    front, rest = line.strip('\n').split('*')
+    rest = rest.split('$')
+    for word in rest:
+        # 将word分解为字符串+数字的组合
+        length = int(re.findall("\d+", word)[0])
+        post = '' + word.strip(str(length))
+        # 检验分解出的后缀长度是否等于记载的length，若符合则写入
+        if len(post) == length:
+            dict.append(front + post)
+        else:
+            raise NameError('Post length doesn\'t equal to length!')
+
+#解压词典文件
 def DictDecompress(compress_file_path, decompress_file_path):
     with open(compress_file_path, 'r', encoding='utf-8') as compress_dict:
         with open(decompress_file_path, 'w', encoding='utf-8') as decompress_dict:
@@ -73,21 +90,20 @@ def DictDecompress(compress_file_path, decompress_file_path):
                 line = compress_dict.readline()
                 if line == '':
                     break
-                #print(line)
                 front, rest = line.strip('\n').split('*')
                 rest = rest.split('$')
                 for word in rest:
                     #将word分解为字符串+数字的组合
                     length = int(re.findall("\d+",word)[0])
                     post = '' + word.strip(str(length))
-                    print('post: ',post)
-                    print('length:' ,length)
-                    print('len_post:',len(post))
+                    # print('post: ',post)
+                    # print('length:' ,length)
+                    # print('len_post:',len(post))
                     #检验分解出的后缀长度是否等于记载的length，若符合则写入
                     if len(post) == length:
                         decompress_dict.write(front + post + '\n')
                     else:
                         raise NameError('Post length doesn\'t equal to length!' )
 
-# DictCompress(4, './components/CompressedDict.txt')
-# DictDecompress('./components/CompressedDict.txt', './components/DecompressedDict.txt')
+#DictCompress(4, './components/CompressedDict.txt')
+#DictDecompress('./components/CompressedDict.txt', './components/DecompressedDict.txt')
