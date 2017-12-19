@@ -48,7 +48,7 @@ def FrontCoding(voclist, size_num):
 
 #块的大小为size_num（一个块有size_num个单词），将解压词典存放在save_file_path中
 def DictCompress(size_num, save_file_path):
-    with open('./components/Index_SPIMI.txt', 'r', encoding='utf-8') as lists:
+    with open('./components/Drama/Index_SPIMI.txt', 'r', encoding='utf-8') as lists:
         voclist = []
         with open(save_file_path,'w') as dict:
             #每size_num个单词为一个块，一起处理，并将处理结果写入到save_file_path中、
@@ -89,5 +89,5 @@ def DictDecompress(compress_file_path, decompress_file_path):
                     else:
                         raise NameError('Post length doesn\'t equal to length!' )
 
-# DictCompress(4, './components/CompressedDict.txt')
-# DictDecompress('./components/CompressedDict.txt', './components/DecompressedDict.txt')
+DictCompress(4, './components/Drama/CompressedDict.txt')
+DictDecompress('./components/Drama/CompressedDict.txt', './components/Drama/DecompressedDict.txt')
