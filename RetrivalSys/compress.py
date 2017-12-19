@@ -1,4 +1,7 @@
-
+# -*- coding: utf-8 -*-
+import json
+import struct
+import binascii
 # Gamma编码
 def Gamma_encode(num):
     """Gamma编码:
@@ -45,6 +48,7 @@ def Gamma_decode(code):
         raise TypeError("code type must be bytes")
     num = 0
     num_len = 0
+    code_len = 0
     get_len = False
     for i in range(len(code)):
         # 先解长度码
@@ -60,17 +64,65 @@ def Gamma_decode(code):
                     now_len += 1
                 else:
                     break
+            code_len += 16-now_len-1
             num_len += now_len
             num = now_num
             get_len = True
         else:
             # 解剩余的偏移码我偷懒直接移位求和了，实际还需要改进，按解得的长度去解码
-            num = (num << 8) + code[i]
+            if code_len<num_len:
+                num = (num << 8)+code[i]
+                code_len += 8
+            else:
+                left_len=num_len+8-code_len
+                num = (num << left_len) + (code[i] >> 8 - left_len)
+
     num += 1 << num_len
     return num
-
-
+'''
 bt = Gamma_encode(1025)
 print(bt)
-num = Gamma_decode(bt)
+print(type(bt))
+num = Gamma_decode(b'\xff\xc0\x0f')
 print(num)
+'''
+def index_encode():
+    first_index = 0
+    bia = 0
+    k=0
+    index_file = open("components/Drama/Index_SPIMI.txt", 'r', encoding='utf-8')
+    #index_file = open("components/index.txt", 'r', encoding='utf-8')
+    encode_index_file = open("components/encode_index.txt", 'wb')
+    dict_file = open("components/dict.txt", 'w', encoding='utf-8')
+    line = index_file.readline()#调用文件的 readline()方法
+    while line:
+        word_index_dict=json.loads(line)
+        index_list=list(word_index_dict.values())[0]
+        first_index=first_index+bia
+        term_dict = {list(word_index_dict.keys())[0]: first_index}
+        term_str = json.dumps(term_dict)
+        dict_file.write(term_str + '\n')
+        code=Gamma_encode(index_list[0])
+        bia+=len(code)
+        encode_index_file.write(code)
+        for i in range(1,len(index_list)):
+            code1 = Gamma_encode(index_list[i][0])
+            code2 = Gamma_encode(index_list[i][1])
+            bia += len(code1)
+            bia += len(code2)
+            encode_index_file.write(code1)
+            encode_index_file.write(code2)
+        line = index_file.readline()
+
+    index_file.close()
+    encode_index_file.close()
+
+def index_decode(num):
+    encode_index_file = open("components/encode_index.txt", 'rb')
+    code=encode_index_file.read()
+    print(code[num])
+
+
+
+index_encode()
+#index_decode(58)
