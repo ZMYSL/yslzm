@@ -82,15 +82,17 @@ def DictCompress(size_num, save_file_path):
 #传入参数为压缩词典字符串
 def LineDecompress(line):
     dict = []
+    offsets = []
     front, rest = line.strip('$\n').split('*')
     rest = rest.split('$')
     for word in rest:
         #分解出三个变量：后缀长度、后缀、偏移量
         #后缀长度为0的情况下，没有后缀
         if word[0] == '0':
-            post = ''
-            offset = word[1:]
-            dict.append('{"' + front + post + '": ' + str(offset) + '}')
+            offset = int(word[1:])
+            dict.append(front)
+            offsets.append(offset)
+            #dict.append('{"' + front+ '": ' + str(offset) + '}')
         else:
             # 将word分解为字符串+数字的组合
             length = int(re.findall("\d+", word)[0])
@@ -98,10 +100,12 @@ def LineDecompress(line):
             post = '' + word.strip(str(length)).strip(str(offset))
             # 检验分解出的后缀长度是否等于记载的length，若符合则写入
             if len(post) == length:
-                dict.append('{"' + front + post + '": ' + str(offset) + '}')
+                #dict.append('{"' + front + post + '": ' + str(offset) + '}')
+                dict.append(front + post)
+                offsets.append(offset)
             else:
                 raise NameError('Post length doesn\'t equal to length!')
-    return dict
+    return dict, offsets
 
 #解压词典文件
 def DictDecompress(compress_file_path, decompress_file_path):
