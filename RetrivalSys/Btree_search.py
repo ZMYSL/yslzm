@@ -1,3 +1,4 @@
+
 import operator
 from DictBuild import LineDecompress
 
@@ -116,8 +117,8 @@ class BTree(object):
         i = 0
         while i < h:
             w = cmp(value, node.keys[i])
-            if w is not 0 and 1:
-                return node.keys[i]
+            if w is not 0 and w is not 1:
+                return w
             i +=1
         if node.leaf:
           #在叶节点中没有key，B树中不存在这个key
@@ -143,26 +144,27 @@ class BTree(object):
       print(output)
       this_level = next_level
 
-  def cmp(key, precode):
+
+def cmp(key, precode):
       """key与前缀编码的比较函数"""
       pre = precode.split('*')[0]
       prekey = key[0:len(pre)]
-      if operator.lt(pre, prekey):
+      if operator.lt(prekey, pre):
           return 0
           # key的前缀小于编码的前缀，key小于前缀
-      elif operator.gt(pre, prekey):
+      elif operator.gt(prekey, pre):
           return 1
       elif operator.eq(pre, prekey):
-          decode = LineDecompress(precode)  # 解码
+          decode,offset = LineDecompress(precode)  # 解码
           juge = find(decode, key)
           if juge is not -1:
-              return decode[juge]
+              return offset[juge]
           elif operator.gt(key, decode[len(decode) - 1]):
               return 1
           elif operator.lt(key, decode[0]):
               return 0
 
-  def find(decode, key):
+def find(decode, key):
       """解码后，在块中二分查找"""
       low = 0
       high = len(decode) - 1
@@ -180,6 +182,10 @@ class BTree(object):
 
 
 
-
 c = BTree(2.5)#定义key值为4
-
+dict_file = open("./components/Drama/CompressedDict.txt", "r", encoding="utf-8")
+for line in dict_file:
+    line = line.strip('\n')
+    c.insert(line)
+#c.print_order()
+#print(c.search("pack"))
