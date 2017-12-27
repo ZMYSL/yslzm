@@ -181,11 +181,14 @@ def find(decode, key):
 
 
 
+def FindWord(key,word):
+    c = BTree(key)#定义key值为4
+    dict_file = open("./components/Drama/CompressedDict.txt", "r", encoding="utf-8")
+    for line in dict_file:
+        line = line.strip('\n')
+        c.insert(line)
+    #c.print_order()
+    #print(c.search("act"))
+    return c.search(word)
+#print(FindWord(2.5,"ALL"))
 
-c = BTree(2.5)#定义key值为4
-dict_file = open("./components/Drama/CompressedDict.txt", "r", encoding="utf-8")
-for line in dict_file:
-    line = line.strip('\n')
-    c.insert(line)
-#c.print_order()
-#print(c.search("pack"))
