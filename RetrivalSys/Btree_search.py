@@ -1,6 +1,6 @@
-
 import operator
-from DictBuild import LineDecompress
+from RetrivalSys import DictBuild
+from functools import cmp_to_key
 
 class BTree(object):
   """具有插入、搜索、打印的B树。"""
@@ -39,7 +39,7 @@ class BTree(object):
 
           parent.children = parent.add_child(new_node)
           #将key与提升的关键字比较，决定返回关键字应该插入的分支
-          if cmp(payload,split_value) is 0:
+          if cmp_precode(payload,split_value) is -1:
               return self
           else:
               return new_node
@@ -57,7 +57,7 @@ class BTree(object):
           将key的值为value添加keys列表
           """
           self.keys.append(value)
-          self.keys.sort() #对keys重新排序
+          self.keys.sort(key=cmp_to_key(cmp_precode), reverse=False) #对keys重新排序
 
       def add_child(self, new_node):
           """
@@ -66,7 +66,7 @@ class BTree(object):
           返回: 一个有序的孩子节点列表
           """
           i = len(self.children) - 1
-          while i >= 0 and operator.gt(self.children[i].keys[0],new_node.keys[0]):
+          while i >= 0 and cmp_precode(self.children[i].keys[0],new_node.keys[0]) is 1:
               i -= 1
           return self.children[:i + 1] + [new_node] + self.children[i + 1:]
 
@@ -95,9 +95,9 @@ class BTree(object):
       self.root = new_root
     while not node.leaf:
       i = node.size - 1
-      while i > 0 and cmp(payload,node.keys[i]) is 0 :#找到key在当前node哪个key之间
+      while i > 0 and cmp_precode(payload,node.keys[i]) is -1 :#找到key在当前node哪个key之间
         i -= 1
-      if cmp(payload,node.keys[i]) is 1:#在当前key的右分支
+      if cmp_precode(payload,node.keys[i]) is 1:#在当前key的右分支
         i += 1
 
       next = node.children[i]
@@ -116,8 +116,8 @@ class BTree(object):
         h = node.size
         i = 0
         while i < h:
-            w = cmp(value, node.keys[i])
-            if w is not 0 and w is not 1:
+            w = cmp_key(value, node.keys[i])
+            if w is not -1 and w is not 1:
                 return w
             i +=1
         if node.leaf:
@@ -126,7 +126,7 @@ class BTree(object):
         else:
             # 比较key与当前节点keys中的大小，在孩子节点中递归寻找
             i = 0
-            while i < node.size and cmp(value, node.keys[i]) is 1:
+            while i < node.size and cmp_key(value, node.keys[i]) is 1:
                 i += 1
             return self.search(value, node.children[i])
 
@@ -143,26 +143,61 @@ class BTree(object):
         output += str(node.keys) + " "
       print(output)
       this_level = next_level
-
-
-def cmp(key, precode):
-      """key与前缀编码的比较函数"""
-      pre = precode.split('*')[0]
-      prekey = key[0:len(pre)]
-      if operator.lt(prekey, pre):
-          return 0
-          # key的前缀小于编码的前缀，key小于前缀
-      elif operator.gt(prekey, pre):
+def cmp_precode(precode1, precode2):
+      """前缀编码比较函数"""
+      pre1 = precode1.split('*')[0]
+      pre2 = precode2.split('*')[0]
+      if pre1 == '':
+          pre1 = DictBuild.LineDecompress(precode1)[0][0]
+      if pre2 == '':
+          pre2 = DictBuild.LineDecompress(precode2)[0][0]
+      mlen = min(len(pre1),len(pre2))
+      pre1 = pre1[0:mlen]
+      pre2 = pre2[0:mlen]
+      if operator.lt(pre1, pre2):
+          return -1
+      elif operator.gt(pre1, pre2):
           return 1
-      elif operator.eq(pre, prekey):
-          decode,offset = LineDecompress(precode)  # 解码
-          juge = find(decode, key)
-          if juge is not -1:
-              return offset[juge]
-          elif operator.gt(key, decode[len(decode) - 1]):
+      elif operator.eq(pre1, pre2):
+          word1 = DictBuild.LineDecompress(precode1)[0][0]
+          word2 = DictBuild.LineDecompress(precode2)[0][0]
+          if operator.lt(word1, word2):
+              return -1
+          elif operator.gt(word1, word2):
               return 1
-          elif operator.lt(key, decode[0]):
+          elif operator.eq(word1, word2):
               return 0
+
+def cmp_key(key, precode):
+    """key与前缀编码的比较函数"""
+    pre = precode.split('*')[0]
+    decode, offset = DictBuild.LineDecompress(precode)
+    if pre == '':
+        pre = decode[0]
+    mlen = min(len(key), len(pre))
+    prekey = key[0:mlen]
+    pre = pre[0:mlen]
+    if operator.lt(prekey, pre):
+        if operator.ge(key, decode[0]):
+            juge = find(decode, key)
+            if juge is not -1:
+                return offset[juge]
+        return -1
+    # key的前缀小于编码的前缀，key小于前缀
+    elif operator.gt(prekey, pre):
+        if operator.le(key, decode[len(decode) - 1]):
+            juge = find(decode, key)
+            if juge is not -1:
+                return offset[juge]
+        return 1
+    elif operator.eq(pre, prekey):
+        juge = find(decode, key)
+        if juge is not -1:
+            return offset[juge]
+        elif operator.gt(key, decode[len(decode) - 1]):
+            return 1
+        elif operator.lt(key, decode[0]):
+            return -1
 
 def find(decode, key):
       """解码后，在块中二分查找"""
@@ -188,7 +223,18 @@ def FindWord(key,word):
         line = line.strip('\n')
         c.insert(line)
     #c.print_order()
-    #print(c.search("act"))
+    #print(c.search("A"))
     return c.search(word)
-#print(FindWord(2.5,"ALL"))
-
+#print(FindWord(2.5,"Call"))
+'''
+lists = open("./components/Drama/dict.txt", 'r')
+w = open("./components/Drama/test.txt", 'w')
+for line in lists:
+    voclist = []
+    offsets = []
+    word = line.strip('\n').strip('{}').split(':')[0].strip('"')
+    offset=FindWord(2.5, word)
+    w.write(str(offset) + '\n')
+lists.close()
+w.close()
+'''
