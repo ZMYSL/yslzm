@@ -50,8 +50,11 @@ def FrontCoding(voclist, offsets, size_num):
     return string
 
 #块的大小为size_num（一个块有size_num个单词），将解压词典存放在save_file_path中
-def DictCompress(size_num, save_file_path):
-    with open('./components/Drama/dict.txt', 'r', encoding='utf-8') as lists:
+def DictCompress(args, size_num=4):
+    cpn_dir = args.cpn_dir
+    dict_path = cpn_dir + 'dict.txt'
+    save_file_path = cpn_dir + 'CompressedDict.txt'
+    with open(dict_path, 'r', encoding='utf-8') as lists:
         voclist = []
         offsets = []
         with open(save_file_path,'w') as dict:
@@ -135,7 +138,7 @@ def DictDecompress(compress_file_path, decompress_file_path):
                         else:
                             raise NameError('Post length doesn\'t equal to length!')
 
-DictCompress(4, './components/Drama/CompressedDict.txt')
-DictDecompress('./components/Drama/CompressedDict.txt', './components/Drama/DecompressedDict.txt')
+# DictCompress(4, './components/Drama/CompressedDict.txt')
+# DictDecompress('./components/Drama/CompressedDict.txt', './components/Drama/DecompressedDict.txt')
 #print(LineDecompress('zeal*089904$089915$'))
 #print(LineDecompress('A*00$2CT195$4Eson362$2LL373'))

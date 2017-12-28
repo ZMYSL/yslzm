@@ -143,6 +143,7 @@ class BTree(object):
         output += str(node.keys) + " "
       print(output)
       this_level = next_level
+
 def cmp_precode(precode1, precode2):
       """前缀编码比较函数"""
       pre1 = precode1.split('*')[0]
@@ -214,18 +215,13 @@ def find(decode, key):
 
       return -1
 
+def FindWord(tree, word):
 
-
-def FindWord(key,word):
-    c = BTree(key)#定义key值为4
-    dict_file = open("./components/Drama/CompressedDict.txt", "r", encoding="utf-8")
-    for line in dict_file:
-        line = line.strip('\n')
-        c.insert(line)
     #c.print_order()
     #print(c.search("A"))
-    return c.search(word)
+    return tree.search(word)
 #print(FindWord(2.5,"Call"))
+
 '''
 lists = open("./components/Drama/dict.txt", 'r')
 w = open("./components/Drama/test.txt", 'w')
@@ -238,3 +234,13 @@ for line in lists:
 lists.close()
 w.close()
 '''
+def createTree(args, key=2.5):
+    cpn_path = args.cpn_dir
+    dict_path = cpn_path + 'CompressedDict.txt'
+    c = BTree(key)
+    dict_file = open(dict_path, "r", encoding="utf-8")
+    for line in dict_file:
+        line = line.strip('\n')
+        c.insert(line)
+    dict_file.close()
+    return c

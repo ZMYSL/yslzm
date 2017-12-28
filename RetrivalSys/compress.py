@@ -51,11 +51,10 @@ def Gamma_encode_all(numlist):
         end = bit8 + 8 if bit8 + 8 <= len(code_ult) else len(code_ult)
         code_list.append(int(code_ult[now:end], 2) << (8 - (end - now)))
         bit8 += 8
-    print(code_ult)
     return bytes(code_list), bias_list
 
 # Gamma解码,直接从文件中在偏移位置进行解码
-def Gamma_decode_all(bias):
+def Gamma_decode_all(args, bias):
     """Gamma解码:从指定偏移位置解出对应的倒排记录
                 Args:
                     bias: int型变量
@@ -66,7 +65,8 @@ def Gamma_decode_all(bias):
         raise TypeError("bias type must be bytes")
     bytes_id = bias // 8
     bias_id = bias % 8
-    encode_index_file = open("components/Drama/encode_index.txt", 'rb')
+    encode_path = args.cpn_dir + 'encode_index.txt'
+    encode_index_file = open(encode_path, 'rb')
     block = 8192 * 1024
     block_sum = bytes_id // block
     bytes_rest = bytes_id % block
@@ -148,10 +148,14 @@ def Gamma_decode_all(bias):
     return index
 
 
-def index_encode():
-    index_file = open("components/Drama/Index_SPIMI.txt", 'r', encoding='utf-8')
-    encode_index_file = open("components/Drama/encode_index.txt", 'wb')
-    dict_file = open("components/Drama/dict.txt", 'w', encoding='utf-8')
+def index_encode(args):
+    cpn_dir = args.cpn_dir
+    index_path = cpn_dir + 'Index_SPIMI.txt'
+    encode_path = cpn_dir + 'encode_index.txt'
+    dict_path = cpn_dir + 'dict.txt'
+    index_file = open(index_path, 'r', encoding='utf-8')
+    encode_index_file = open(encode_path, 'wb')
+    dict_file = open(dict_path, 'w', encoding='utf-8')
     numlist = []
     word_dict = []
     for line in index_file:
@@ -175,9 +179,9 @@ def index_encode():
 
 
 
-
-# index_encode()
-li = [19, 2, 2, 3, 1, 4, 6, 5, 1, 6, 1, 7, 1, 8, 1, 9, 1, 11, 5, 12, 4, 13, 3, 15, 1, 16, 5, 17, 1, 18, 2, 19, 2, 20, 13, 21, 1, 22, 8]
-Gamma_encode_all(li)
-index_list = Gamma_decode_all(1102)
-print(index_list)
+#
+# # index_encode()
+# li = [19, 2, 2, 3, 1, 4, 6, 5, 1, 6, 1, 7, 1, 8, 1, 9, 1, 11, 5, 12, 4, 13, 3, 15, 1, 16, 5, 17, 1, 18, 2, 19, 2, 20, 13, 21, 1, 22, 8]
+# Gamma_encode_all(li)
+# index_list = Gamma_decode_all(1102)
+# print(index_list)

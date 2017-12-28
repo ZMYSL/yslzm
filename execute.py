@@ -1,8 +1,12 @@
 from RetrivalSys import preprocess
 from RetrivalSys import make_index
 from RetrivalSys import DictBuild
+from RetrivalSys import compress
+from RetrivalSys import Btree_search
+from RetrivalSys import result
 import argparse
 import os
+
 
 def set_args(parser):
     """设置所有运行参数
@@ -36,6 +40,22 @@ if __name__ == '__main__':
         preprocess.make_vocab(args, 'shakespeare-merchant_nolabel', 'vocab_ori.txt')
         preprocess.statistic_info(args)
         make_index.SPIMI(args, 'shakespeare-merchant_nolabel', 1000)
+        compress.index_encode(args)
+        DictBuild.DictCompress(args)
+        BTree = Btree_search.createTree(args)
+
+        # 倒排建立、压缩、词典压缩完成，输入返回相应关键词的倒排记录
+        while True:
+            input_word = input("输入需要查询的单词，返回倒排记录，输入order:exit退出\n")
+            if input_word == 'order:exit':
+                break
+            bias = Btree_search.FindWord(BTree, input_word)
+            if bias == False:
+                print("文档集合中没有该单词，请重新输入")
+                continue
+            index_list = compress.Gamma_decode_all(args, bias)
+            print(index_list)
+
 
     if args.work_task == 'filter':
         path = args.data_ori_dir
