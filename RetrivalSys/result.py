@@ -12,8 +12,12 @@ EPSILON = 0.25
 # 输入查询词得到倒排记录表
 def GetResult(args, BTree, query):
     bias = Btree_search.FindWord(BTree, query)
-    index_list = compress.Gamma_decode_all(args, bias)
-    return index_list
+    no_index_list = []
+    if bias is False:
+        return no_index_list
+    else:
+        index_list = compress.Gamma_decode_all(args, bias)
+        return index_list
 
 
 '''
@@ -42,14 +46,18 @@ def CalBM25(query_str, docid, doc_sum, avgdl, doc_len, word_dict):
             query[word] = 0
         query[word] += 1
     for word in words:
-        index_list = word_dict[word]
-        df = index_list[0]
-        idf = math.log(doc_sum - df + 0.5) - math.log(df + 0.5)
-        for i in range(df):
-            if docid == index_list[i + 1][0]:
-                tf = index_list[i + 1][1]
-        if i == df:
+        if len(word_dict[word]) == 0:
             tf = 0
+            idf = 0
+        else:
+            index_list = word_dict[word]
+            df = index_list[0]
+            idf = math.log(doc_sum - df + 0.5) - math.log(df + 0.5)
+            for i in range(df):
+                if docid == index_list[i + 1][0]:
+                    tf = index_list[i + 1][1]
+            if i == df:
+                tf = 0
         #增加了词在query中词频
         score += query[word] * idf * tf * (PARAM_K1 + 1) / (
         tf + PARAM_K1 * (1 - PARAM_B + PARAM_B * int(doc_len[docid - 1]) / avgdl))
@@ -78,11 +86,14 @@ def GetTopK(args, BTree, query_str, K):
     doc_len = s.split(',')
     for word in words:
         index_list = GetResult(args, BTree, word)
-        for i in range(index_list[0]):
-            doc = index_list[i + 1][0]
-            if doc not in docids:
-                docids.append(index_list[i + 1][0])
-        word_dict[word] = index_list
+        if len(index_list) == 0:
+            word_dict[word] = {}
+        else:
+            for i in range(index_list[0]):
+                doc = index_list[i + 1][0]
+                if doc not in docids:
+                    docids.append(index_list[i + 1][0])
+            word_dict[word] = index_list
     for docid in docids:
         score = CalBM25(query_str, docid, doc_sum, avgdl, doc_len, word_dict)
         scores[docid-1] = score
@@ -91,6 +102,6 @@ def GetTopK(args, BTree, query_str, K):
         print(dict[i])
 
 
-#print(GetResult("park"))
+#print(GetResult("paak"))
 #print(GetResult("add"))
 #GetTopK("park add", 2)
