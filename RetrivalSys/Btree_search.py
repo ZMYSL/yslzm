@@ -6,11 +6,12 @@ class BTree(object):
   """具有插入、搜索、打印的B树。"""
 
   class Node(object):
-      """B树的节点。"""
+      """B树的节点"""
 
       def __init__(self, t):
           self.keys = []
           self.children = []
+          #是否为叶子节点
           self.leaf = True
           # t是树的度，节点的最大关键字数量是2t-1
           self._t = t
@@ -117,7 +118,7 @@ class BTree(object):
         i = 0
         while i < h:
             w = cmp_key(value, node.keys[i])
-            if w is not -1 and w is not 1:
+            if w is not -1 and w is not -2:
                 return w
             i +=1
         if node.leaf:
@@ -126,7 +127,7 @@ class BTree(object):
         else:
             # 比较key与当前节点keys中的大小，在孩子节点中递归寻找
             i = 0
-            while i < node.size and cmp_key(value, node.keys[i]) is 1:
+            while i < node.size and cmp_key(value, node.keys[i]) is -2:
                 i += 1
             return self.search(value, node.children[i])
 
@@ -144,6 +145,7 @@ class BTree(object):
       print(output)
       this_level = next_level
 
+#比较压缩词典行precode1和precode2的关系
 def cmp_precode(precode1, precode2):
       """前缀编码比较函数"""
       pre1 = precode1.split('*')[0]
@@ -159,6 +161,7 @@ def cmp_precode(precode1, precode2):
           return -1
       elif operator.gt(pre1, pre2):
           return 1
+
       elif operator.eq(pre1, pre2):
           word1 = DictBuild.LineDecompress(precode1)[0][0]
           word2 = DictBuild.LineDecompress(precode2)[0][0]
@@ -168,7 +171,9 @@ def cmp_precode(precode1, precode2):
               return 1
           elif operator.eq(word1, word2):
               return 0
-
+#单词比当前前缀小时，返回-1
+#单词比当前前缀大时，返回-2
+#找到时，返回偏移量
 def cmp_key(key, precode):
     """key与前缀编码的比较函数"""
     pre = precode.split('*')[0]
@@ -190,13 +195,13 @@ def cmp_key(key, precode):
             juge = find(decode, key)
             if juge is not -1:
                 return offset[juge]
-        return 1
+        return -2
     elif operator.eq(pre, prekey):
         juge = find(decode, key)
         if juge is not -1:
             return offset[juge]
         elif operator.gt(key, decode[len(decode) - 1]):
-            return 1
+            return -2
         elif operator.lt(key, decode[0]):
             return -1
 
