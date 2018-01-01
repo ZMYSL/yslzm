@@ -109,6 +109,26 @@ class BTree(object):
     # 将路径上的所有满的节点都分裂，就可以轻松地插入key.
     node.add_key(payload)
 
+
+  def search(self, value, node=None):
+      """如果B树包含查询的key，返回node"""
+      if node is None:
+        node = self.root
+      if node is not None:
+          h = node.size
+          i = 0
+          while i < h:
+              w = cmp_key(value, node.keys[i])
+              if w is not -1 and w is not -2:
+                  return w
+              elif w is -2:
+                  i +=1
+              elif w is -1:
+                  break
+          if node.leaf:
+              return False
+          return self.search(value, node.children[i])
+  '''
   def search(self, value, node=None):
     """如果B树包含查询的key，返回node"""
     if node is None:
@@ -129,8 +149,8 @@ class BTree(object):
             i = 0
             while i < node.size and cmp_key(value, node.keys[i]) is -2:
                 i += 1
-            return self.search(value, node.children[i])
-
+            return self.search(value, node.children[i])  
+  '''
 
   def print_order(self):
     """按每层打印B树."""
@@ -171,6 +191,8 @@ def cmp_precode(precode1, precode2):
               return 1
           elif operator.eq(word1, word2):
               return 0
+
+
 #单词比当前前缀小时，返回-1
 #单词比当前前缀大时，返回-2
 #找到时，返回偏移量
