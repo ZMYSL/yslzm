@@ -6,6 +6,7 @@ from RetrivalSys import Btree_search
 from RetrivalSys import result
 import argparse
 import os
+import json
 
 
 def set_args(parser):
@@ -34,6 +35,8 @@ if __name__ == '__main__':
     )
     set_args(parser)
     args = parser.parse_args()
+
+    # 处理作业1的流程
     if args.work_task == 'Drama':
         preprocess.merge_data(args, 'shakespeare-merchant.trec.1', 'shakespeare-merchant.trec.2')
         preprocess.del_label(args, 'shakespeare-merchant')
@@ -43,6 +46,8 @@ if __name__ == '__main__':
         compress.index_encode(args)
         DictBuild.DictCompress(args)
         BTree = Btree_search.createTree(args)
+        len_file = open(args.cpn_dir + 'doclen.txt', 'r', encoding='utf-8')
+        doc_len = json.loads(len_file.readline())
 
         # 倒排建立、压缩、词典压缩完成，输入返回相应关键词的倒排记录
         while True:
@@ -50,13 +55,14 @@ if __name__ == '__main__':
             if input_word == 'order:exit':
                 break
             bias = Btree_search.FindWord(BTree, input_word)
-            if bias == False:
+            if bias is None:
                 print("文档集合中没有该单词，请重新输入")
                 continue
             index_list = compress.Gamma_decode_all(args, bias)
             print(index_list)
 
 
+    # 预处理Trec数据集
     if args.work_task == 'filter':
         path = args.data_ori_dir
         dir_list = os.listdir(path)
@@ -78,3 +84,28 @@ if __name__ == '__main__':
                             print("Filter process: %d/%d" %(filtered_sum, 733328))
         out_file.close()
 
+    # 处理作业2的流程 290580
+    if args.work_task == 'Trec':
+        # preprocess.get_summary(args)
+        # preprocess.get_doclen(args)
+        # make_index.SPIMI(args, 'docset.txt', 10000000, isDrama=False, minDF=10)
+        # compress.index_encode(args)
+        # DictBuild.DictCompress(args, size_num=10)
+        BTree = Btree_search.createTree(args)
+        len_file = open(args.cpn_dir + 'doclen.txt', 'r', encoding='utf-8')
+        doc_len = json.loads(len_file.readline())
+
+        query_file = open(args.data_pro_dir + 'summary2015.txt', 'r', encoding='utf-8')
+        trec_eval = open(args.data_pro_dir + 'trec_eval.txt', 'w', encoding='utf-8')
+        for i in range(30):
+            print("Inference process %d/%d" % (i, 30))
+            query = query_file.readline()
+            ir_list = result.GetTopK(args, BTree, query, doc_len, 2000)
+            rank = 1
+            for item in ir_list:
+                print("Rank %d writed" % rank)
+                docid = item[0] + preprocess.MIN_DOCID - 1
+                eval_line = '%d Q0 %d %d %g %s' % (i + 1, docid, rank, item[1], '005073')
+                rank += 1
+                trec_eval.write(eval_line + '\n')
+        trec_eval.close()

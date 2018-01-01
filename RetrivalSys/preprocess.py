@@ -2,13 +2,13 @@
 import re
 import os
 import nltk
-from bs4 import BeautifulSoup
-
+import json
 
 Porter = nltk.PorterStemmer()
 WNL = nltk.WordNetLemmatizer()
 Stop_Words = nltk.corpus.stopwords.words('english')
 MIN_DOCID = 13900
+
 
 # 合并剧本
 def merge_data(args, file_name1, file_name2):
@@ -24,6 +24,7 @@ def merge_data(args, file_name1, file_name2):
     data_file1.close()
     out_file.close()
 
+
 # 去标签,把非字符替换成空格,去除多余空格
 def del_label(args, file_name):
     dir_path = args.data_ori_dir
@@ -36,9 +37,10 @@ def del_label(args, file_name):
         if line == " ":
             continue
         tokens = nltk.word_tokenize(line)
-        out_file.write(' '.join(tokens)+'\n')
+        out_file.write(' '.join(tokens) + '\n')
     data_file.close()
     out_file.close()
+
 
 # 制作vocab
 def make_vocab(args, file_name, out_name):
@@ -65,15 +67,17 @@ def make_vocab(args, file_name, out_name):
     data_file.close()
     vocab_file.close()
 
+
 # 统计信息
 def statistic_info(args):
     dir_path = args.data_ori_dir
     data_file = open(dir_path + "shakespeare-merchant_nolabel", 'r', encoding='utf-8')
     vocab_file = open(dir_path + "vocab_ori.txt", 'r', encoding='utf-8')
     info_file = open(dir_path + "statistic_res.txt", 'w', encoding='utf-8')
+    len_file = open(args.cpn_dir + 'doclen.txt', 'w', encoding='utf-8')
     vocab = dict()
     doc_sum = 0
-    doc_len = []
+    doc_len = dict()
     term_sum = 0
     token_sum = 0
     for line in vocab_file:
@@ -89,14 +93,15 @@ def statistic_info(args):
         for word in seq:
             if word == 'SHK':
                 if doc_sum > 0:
-                    doc_len.append(doc_termsum)
-                doc_termsum = 0
+                    doc_len[doc_sum] = doc_termsum
+                    doc_termsum = 0
                 doc_sum += 1
 
             if word in vocab.keys():
                 token_sum += 1
                 doc_termsum += 1
-    ave_doclen = sum(doc_len) / doc_sum
+    doc_len[doc_sum] = doc_termsum
+    ave_doclen = sum(doc_len.values()) / doc_sum
     term_str = "词项数量:" + str(term_sum)
     docsum_str = "文档数量:" + str(doc_sum)
     token_str = "词条数量:" + str(token_sum)
@@ -110,10 +115,12 @@ def statistic_info(args):
     info_file.write(docsum_str + '\n')
     info_file.write(token_str + '\n')
     info_file.write(ave_str + '\n')
-    info_file.write(doclen_str + '\n')
+    len_file.write(json.dumps(doc_len))
     data_file.close()
     vocab_file.close()
     info_file.close()
+    len_file.close()
+
 
 # 统计Trec数据集文档数目,和docid范围
 def statistic_trec(path):
@@ -132,13 +139,14 @@ def statistic_trec(path):
                     doc_sum += 1
                     max_id = max(max_id, id)
                     min_id = min(min_id, id)
-    print("Doc Sum: %d" % doc_sum) # 733328
-    print("Min id: %d" % min_id) # 13900
-    print("Max id: %d" % max_id) # 3896981
+    print("Doc Sum: %d" % doc_sum)  # 733328
+    print("Min id: %d" % min_id)  # 13900
+    print("Max id: %d" % max_id)  # 3896981
+
 
 # 统计Trec数据集每个topic反馈馈的文档数目,以及相关的文档数目
 def cal_topk():
-    data_file = open("../Data/Trec/qrels-treceval-2014.txt", 'r', encoding='utf-8')
+    data_file = open("Data/Trec/qrels-treceval-2014.txt", 'r', encoding='utf-8')
     q_dict = dict()
     for line in data_file:
         seq = line.strip('\n').split('\t')
@@ -152,7 +160,8 @@ def cal_topk():
 
     data_file.close()
     for q, t in q_dict.items():
-        print("%d : %d" %(q, t))
+        print("%d : %d" % (q, t))
+
 
 # 过滤Trec数据集
 def filter_trec(xml_path, out_file, op_lower=True, op_root=True, op_stop=True):
@@ -201,12 +210,68 @@ def filter_trec(xml_path, out_file, op_lower=True, op_root=True, op_stop=True):
 
     file.close()
 
-# merge_data()
-# del_label("../Data/Drama/shakespeare-merchant")
-# make_vocab("../Data/Drama/shakespeare-merchant_nolabel", "components/vocab_ori.txt")
-# statistic_info()
+# 计算Trec文档长度和平均长度
+def get_doclen(args):
+    data_path = args.data_pro_dir + 'docset.txt'
+    out_path = args.cpn_dir + 'doclen.txt'
+    data_file = open(data_path, 'r', encoding='utf-8')
+    out_file = open(out_path, 'w', encoding='utf-8')
+    doclen = dict()
+    step = 0
+    print("Cal Trec doclen")
+    for line in data_file:
+        print("Process : %d/%d" % (step, 733328))
+        seq = line.strip('\n').split('\t')
+        words = seq[1].split(' ')
+        doclen[seq[0]] = len(words)
+        step += 1
+    print("Cal Trec doclen finished")
+    doclen_str = json.dumps(doclen)
+    out_file.write(doclen_str)
+    data_file.close()
+    out_file.close()
 
-# dir_path = os.path.expanduser('~') + "/Documents/Data/TrecCDS2014"
-# statistic_trec(dir_path)
-# cal_topk()
-# filter_trec()
+# 提取Topic中的summary域
+def get_summary(args):
+    trec2014 = open(args.data_pro_dir + 'topics2014.xml', 'r', encoding='utf-8')
+    out2014 = open(args.data_pro_dir +'summary2014.txt', 'w', encoding='utf-8')
+    for line in trec2014:
+        if '<summary>' in line:
+            mysum = re.sub(r'<.+?>', '', line)
+            mysum = mysum.lower()
+            tokens = nltk.word_tokenize(mysum)
+            t = len(tokens) - 1
+            while t >= 0:
+                # 删除停用词和x0开头的字符
+                isword = re.fullmatch(r'[a-z]+', tokens[t])
+                if tokens[t] in Stop_Words or isword is None:
+                    del tokens[t]
+                t -= 1
+                # 归并、还原词干
+                for i in range(len(tokens)):
+                    tokens[i] = Porter.stem(tokens[i])
+                    tokens[i] = WNL.lemmatize(tokens[i])
+            out2014.write(' '.join(tokens) + '\n')
+    trec2014.close()
+    out2014.close()
+    trec2015 = open(args.data_pro_dir + 'topics2015A.xml', 'r', encoding='utf-8')
+    out2015 = open(args.data_pro_dir + 'summary2015.txt', 'w', encoding='utf-8')
+    for line in trec2015:
+        if '<summary>' in line:
+            mysum = re.sub(r'<.+?>', '', line)
+            mysum = mysum.lower()
+            tokens = nltk.word_tokenize(mysum)
+            t = len(tokens) - 1
+            while t >= 0:
+                # 删除停用词和x0开头的字符
+                isword = re.fullmatch(r'[a-z]+', tokens[t])
+                if tokens[t] in Stop_Words or isword is None:
+                    del tokens[t]
+                t -= 1
+                # 归并、还原词干
+                for i in range(len(tokens)):
+                    tokens[i] = Porter.stem(tokens[i])
+                    tokens[i] = WNL.lemmatize(tokens[i])
+            out2015.write(' '.join(tokens) + '\n')
+    trec2015.close()
+    out2015.close()

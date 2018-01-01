@@ -63,9 +63,10 @@ def DictCompress(args, size_num=4):
                 #4个词
                 for i in range(size_num):
                     line = lists.readline()
+                    #读到文件末尾时
                     if line == '':
                         #没将块填满，需要将剩下的单词编码写入文件
-                        if i < size_num - 1:
+                        if i < size_num - 1 and i is not 0:
                             string = FrontCoding(voclist, offsets, size_num)
                             dict.write(string + '\n')
                         return
@@ -80,7 +81,6 @@ def DictCompress(args, size_num=4):
                         voclist.clear()
                         offsets.clear()
                         break
-
 #单行解压词典
 #传入参数为压缩词典字符串
 def LineDecompress(line):
@@ -137,8 +137,3 @@ def DictDecompress(compress_file_path, decompress_file_path):
                             decompress_dict.write('{"' + front + post + '": ' + str(offset) + '}' + '\n')
                         else:
                             raise NameError('Post length doesn\'t equal to length!')
-
-# DictCompress(4, './components/Drama/CompressedDict.txt')
-# DictDecompress('./components/Drama/CompressedDict.txt', './components/Drama/DecompressedDict.txt')
-#print(LineDecompress('zeal*089904$089915$'))
-#print(LineDecompress('A*00$2CT195$4Eson362$2LL373'))

@@ -2,24 +2,25 @@
 import json
 
 # Gamma编码,对一个list进行编码
-def Gamma_encode_all(numlist):
+def Gamma_encode_all(numlist, encode_file, last_code, last_bias, lastblock=False):
     """Gamma编码:
                 Args:
+                    encode_file: 需要写入编码的文件
+                    last_code: 上次按8位编码剩余的编码
+                    last_bias: 上次按8位编码剩余的位数
                     numlist: int型list.
                 Output:
-                    code_list: bytes型数组，不定长，末尾字节是从高位开始编码，低位用0补足8位.
-                    bias_list: int型数组，保留每个IDF，即倒排起始位偏移量
+                    bias_list: int型数组，保留每个DF，即倒排起始位偏移量
                 """
     if not isinstance(numlist, list):
         raise TypeError("numlist type must be list")
     code_list = []
-    code_ult = ''
+    code_ult = last_code
     bias_list = []
-    bias = 0
+    bias = last_bias
     get_df = False
-    for i in range(len(numlist)):
-        # if not isinstance(numlist[i], list):
-        #     raise TypeError("numlist element type must be int")
+    listsum = len(numlist)
+    for i in range(listsum):
         if numlist[i] == 0:
             raise ValueError("Gamma encode num = 0")
         if not get_df:
@@ -45,13 +46,21 @@ def Gamma_encode_all(numlist):
         bias += len(now_code)
 
     bit8 = 0
+    unbyte_code = ''
     # 从高位开始8位存成一个整数，然后用bytes重构
     while bit8 < len(code_ult):
         now = bit8
-        end = bit8 + 8 if bit8 + 8 <= len(code_ult) else len(code_ult)
+        end = bit8 + 8
+        if end > len(code_ult):
+            if lastblock:
+                end = len(code_ult)
+            else:
+                unbyte_code = code_ult[now:]
+                break
         code_list.append(int(code_ult[now:end], 2) << (8 - (end - now)))
         bit8 += 8
-    return bytes(code_list), bias_list
+    encode_file.write(bytes(code_list))
+    return bias_list, unbyte_code, bias
 
 # Gamma解码,直接从文件中在偏移位置进行解码
 def Gamma_decode_all(args, bias):
@@ -67,11 +76,11 @@ def Gamma_decode_all(args, bias):
     bias_id = bias % 8
     encode_path = args.cpn_dir + 'encode_index.txt'
     encode_index_file = open(encode_path, 'rb')
-    block = 8192 * 1024
+    block = 1024 * 8192
     block_sum = bytes_id // block
     bytes_rest = bytes_id % block
     for i in range(block_sum):
-        encode_index_file.read(block_sum)
+        encode_index_file.read(block)
     encode_index_file.read(bytes_rest)
 
 
@@ -141,14 +150,19 @@ def Gamma_decode_all(args, bias):
     df, nbit_id, lb = decode_pos(lb, bias_id)
     index = []
     index.append(df)
+    real_id = 0
     for i in range(df):
-        tf, nbit_id, lb = decode_pos(lb, nbit_id)
         docid, nbit_id, lb = decode_pos(lb, nbit_id)
-        index.append([tf, docid])
+        tf, nbit_id, lb = decode_pos(lb, nbit_id)
+        if i == 0:
+            real_id = docid
+        else:
+            real_id += docid
+        index.append([real_id, tf])
     return index
 
-
-def index_encode(args):
+# 对倒排索引分块压缩，防止爆内存
+def index_encode(args, blocksize=2):
     cpn_dir = args.cpn_dir
     index_path = cpn_dir + 'Index_SPIMI.txt'
     encode_path = cpn_dir + 'encode_index.txt'
@@ -158,30 +172,46 @@ def index_encode(args):
     dict_file = open(dict_path, 'w', encoding='utf-8')
     numlist = []
     word_dict = []
+    lastcode = ''
+    lastbias = 0
+    print("Encode Index Start")
+    print("Load words start")
+    step = 0
     for line in index_file:
+        print("Words %d/%d loaded" % (step, 246384))
+        step += 1
         word_index_dict = json.loads(line)
         for key, value in word_index_dict.items():
             word_dict.append(key)
             df = value[0]
             numlist.append(df)
             for i in range(df):
-                numlist.append(value[i + 1][0])
-                numlist.append(value[i + 1][1])
-    codes, biaslist = Gamma_encode_all(numlist)
+                if i == 0:
+                    lastid = int(value[i + 1][0])
+                    docid_margin = lastid
+                else:
+                    docid_margin = int(value[i + 1][0]) - lastid
+                    lastid = int(value[i + 1][0])
+                if docid_margin <= 0:
+                    raise ValueError("Docid must the growing sequence")
+                numlist.append(docid_margin)
+                numlist.append(int(value[i + 1][1]))
+        if step % blocksize == 0:
+            # 编码并写入
+            biaslist, lastcode, lastbias = Gamma_encode_all(numlist, encode_index_file, lastcode, lastbias)
+            assert len(word_dict) == len(biaslist)
+            for i in range(len(biaslist)):
+                bias_dict = dict()
+                bias_dict[word_dict[i]] = biaslist[i]
+                dict_file.write(json.dumps(bias_dict) + '\n')
+            word_dict = []
+            numlist = []
+
+    biaslist, lastcode, lastbias = Gamma_encode_all(numlist, encode_index_file, lastcode, lastbias, True)
     assert len(word_dict) == len(biaslist)
     for i in range(len(biaslist)):
         bias_dict = dict()
         bias_dict[word_dict[i]] = biaslist[i]
         dict_file.write(json.dumps(bias_dict) + '\n')
-    encode_index_file.write(codes)
     index_file.close()
     encode_index_file.close()
-
-
-
-#
-# # index_encode()
-# li = [19, 2, 2, 3, 1, 4, 6, 5, 1, 6, 1, 7, 1, 8, 1, 9, 1, 11, 5, 12, 4, 13, 3, 15, 1, 16, 5, 17, 1, 18, 2, 19, 2, 20, 13, 21, 1, 22, 8]
-# Gamma_encode_all(li)
-# index_list = Gamma_decode_all(1102)
-# print(index_list)
